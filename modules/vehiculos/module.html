@@ -1,0 +1,72 @@
+<!-- vehiculos/module.html -->
+<div x-data="window.MODULES.vehiculos" x-init="init()" class="animate__animated animate__fadeIn">
+  <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+    <i class="bi bi-truck"></i> Vehículos
+  </h2>
+
+  <div class="flex flex-wrap gap-2 mb-4">
+    <button class="btn btn-primary" @click="abrirForm()">
+      <i class="bi bi-plus-lg"></i> Agregar
+    </button>
+    <input type="search" x-model="busqueda" placeholder="Buscar por placas o económico..."
+           class="input input-bordered flex-1 min-w-[200px]" />
+    <select x-model="filtroEstado" class="select select-bordered">
+      <option value="todos">Todos los estados</option>
+      <option value="activo">Activo</option>
+      <option value="en taller">En taller</option>
+      <option value="dado de baja">Dado de baja</option>
+    </select>
+  </div>
+
+  <template x-if="cargando">
+    <div class="space-y-3">
+      <div class="skeleton h-12 w-full"></div>
+      <div class="skeleton h-12 w-full"></div>
+      <div class="skeleton h-12 w-full"></div>
+    </div>
+  </template>
+
+  <template x-if="!cargando && datosFiltrados.length">
+    <div class="overflow-x-auto">
+      <table class="table table-zebra">
+        <thead>
+          <tr>
+            <th>Placas</th>
+            <th>Económico</th>
+            <th>Marca / Modelo</th>
+            <th>Año</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr x-for="item in datosFiltrados" :key="item.id">
+            <td class="font-medium" x-text="item.placas"></td>
+            <td x-text="item.numeroEconomico"></td>
+            <td x-text="item.marca + ' ' + item.modelo"></td>
+            <td x-text="item.anio"></td>
+            <td><span class="badge badge-outline" x-text="item.tipo"></span></td>
+            <td>
+              <span class="badge" :class="{'badge-success': item.estado === 'activo', 'badge-warning': item.estado === 'en taller', 'badge-error': item.estado === 'dado de baja'}" x-text="item.estado"></span>
+            </td>
+            <td class="flex gap-1">
+              <button class="btn btn-sm btn-ghost" @click="abrirForm(item)" title="Editar"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-ghost text-error" @click="eliminar(item)" title="Eliminar"><i class="bi bi-trash"></i></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </template>
+
+  <template x-if="!cargando && !datosFiltrados.length">
+    <div class="flex flex-col items-center justify-center py-16 text-base-content/50">
+      <i class="bi bi-truck text-6xl mb-4"></i>
+      <p class="text-lg mb-4">No hay vehículos registrados</p>
+      <button class="btn btn-primary" @click="abrirForm()">
+        <i class="bi bi-plus-lg"></i> Agregar primero
+      </button>
+    </div>
+  </template>
+</div>

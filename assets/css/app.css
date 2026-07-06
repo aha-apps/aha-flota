@@ -1,0 +1,62 @@
+/* AHA Flota — Estilos personalizados */
+:root {
+  --font-family: 'Inter', system-ui, sans-serif;
+}
+body {
+  font-family: var(--font-family);
+}
+.skip-link {
+  position: absolute;
+  top: -100%;
+}
+.skip-link:focus {
+  top: 0.5rem;
+  left: 0.5rem;
+}
+#toast-container {
+  pointer-events: none;
+}
+#toast-container .alert {
+  pointer-events: auto;
+  max-width: 24rem;
+}
+.animate__fadeInRight {
+  animation-duration: 0.3s;
+}
+.animate__fadeOutRight {
+  animation-duration: 0.3s;
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--b2) 25%, var(--b3) 50%, var(--b2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-box, 0.5rem);
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (max-width: 640px) {
+  .table-mobile-card thead { display: none; }
+  .table-mobile-card tbody tr {
+    display: block;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--b3);
+    border-radius: var(--radius-box, 0.5rem);
+    padding: 0.75rem;
+  }
+  .table-mobile-card tbody td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    border: none;
+  }
+  .table-mobile-card tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--bc);
+    opacity: 0.6;
+  }
+}

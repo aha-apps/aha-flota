@@ -1,0 +1,96 @@
+<!-- reportes/module.html -->
+<div x-data="window.MODULES.reportes" x-init="init()" class="animate__animated animate__fadeIn">
+  <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+    <i class="bi bi-bar-chart"></i> Reportes
+  </h2>
+
+  <template x-if="cargando">
+    <div class="space-y-3"><div class="skeleton h-24 w-full"></div><div class="skeleton h-24 w-full"></div><div class="skeleton h-48 w-full"></div></div>
+  </template>
+
+  <template x-if="!cargando">
+    <div>
+      <!-- KPIs -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="stat bg-base-100 rounded-xl shadow-sm border border-base-300">
+          <div class="stat-figure text-primary"><i class="bi bi-truck text-2xl"></i></div>
+          <div class="stat-title">Total vehículos</div>
+          <div class="stat-value text-primary" x-text="totalVehiculos"></div>
+          <div class="stat-desc"><span x-text="vehiculosActivos"></span> activos</div>
+        </div>
+        <div class="stat bg-base-100 rounded-xl shadow-sm border border-base-300">
+          <div class="stat-figure text-accent"><i class="bi bi-fuel-pump text-2xl"></i></div>
+          <div class="stat-title">Gasto combustible (mes)</div>
+          <div class="stat-value text-accent text-xl" x-text="formatCurrency(gastoCombustibleMes)"></div>
+          <div class="stat-desc">Últimos 30 días</div>
+        </div>
+        <div class="stat bg-base-100 rounded-xl shadow-sm border border-base-300">
+          <div class="stat-figure text-warning"><i class="bi bi-tools text-2xl"></i></div>
+          <div class="stat-title">Próximos mantenimientos</div>
+          <div class="stat-value text-warning text-xl" x-text="proxMantenimientos.length"></div>
+          <div class="stat-desc">Con próximo km programado</div>
+        </div>
+        <div class="stat bg-base-100 rounded-xl shadow-sm border border-base-300">
+          <div class="stat-figure text-error"><i class="bi bi-exclamation-triangle text-2xl"></i></div>
+          <div class="stat-title">Incidentes</div>
+          <div class="stat-value text-error text-xl" x-text="totalIncidentes"></div>
+          <div class="stat-desc" x-text="formatCurrency(costoIncidentes) + ' en costos'"></div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4">
+          <h3 class="font-semibold text-sm mb-3">Costo por km por vehículo</h3>
+          <div class="relative h-64"><canvas id="chart-costo-km"></canvas></div>
+        </div>
+        <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4">
+          <h3 class="font-semibold text-sm mb-3">Gasto combustible por vehículo</h3>
+          <div class="relative h-64"><canvas id="chart-gasto-combustible"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Próximos mantenimientos -->
+      <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-sm">Próximos mantenimientos programados</h3>
+          <span class="badge badge-warning" x-text="proxMantenimientos.length + ' pendientes'"></span>
+        </div>
+        <template x-if="proxMantenimientos.length">
+          <div class="overflow-x-auto">
+            <table class="table table-sm">
+              <thead><tr><th>Vehículo</th><th>Tipo</th><th>Taller</th><th>Próximo Km</th></tr></thead>
+              <tbody>
+                <tr x-for="m in proxMantenimientos" :key="m.id">
+                  <td x-text="vehiculoLabel(m.vehiculoId)"></td>
+                  <td><span class="badge badge-sm badge-outline" x-text="m.tipo"></span></td>
+                  <td x-text="m.taller || '-'"></td>
+                  <td x-text="m.proximoKm ? m.proximoKm.toLocaleString() : '-'"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+        <template x-if="!proxMantenimientos.length">
+          <p class="text-sm text-base-content/40 py-4 text-center">No hay mantenimientos con próximo km programado</p>
+        </template>
+      </div>
+
+      <!-- CSV Export -->
+      <div class="flex flex-wrap gap-2">
+        <button class="btn btn-outline btn-sm" @click="exportCSV('vehiculos')">
+          <i class="bi bi-file-earmark-spreadsheet"></i> Vehículos CSV
+        </button>
+        <button class="btn btn-outline btn-sm" @click="exportCSV('combustible')">
+          <i class="bi bi-file-earmark-spreadsheet"></i> Combustible CSV
+        </button>
+        <button class="btn btn-outline btn-sm" @click="exportCSV('mantenimiento')">
+          <i class="bi bi-file-earmark-spreadsheet"></i> Mantenimiento CSV
+        </button>
+        <button class="btn btn-outline btn-sm" @click="exportCSV('incidentes')">
+          <i class="bi bi-file-earmark-spreadsheet"></i> Incidentes CSV
+        </button>
+      </div>
+    </div>
+  </template>
+</div>

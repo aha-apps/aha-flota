@@ -1,0 +1,82 @@
+<!-- mantenimiento/module.html -->
+<div x-data="window.MODULES.mantenimiento" x-init="init()" class="animate__animated animate__fadeIn">
+  <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+    <i class="bi bi-tools"></i> Mantenimiento
+  </h2>
+
+  <div class="flex flex-wrap gap-2 mb-4">
+    <button class="btn btn-primary" @click="abrirForm()">
+      <i class="bi bi-plus-lg"></i> Nuevo servicio
+    </button>
+    <select x-model="filtroVehiculo" class="select select-bordered min-w-[200px]" @change="cargarDatos()">
+      <option value="">Todos los vehículos</option>
+      <template x-for="v in vehiculos" :key="v.id">
+        <option :value="v.id" x-text="v.placas + ' — ' + v.marca + ' ' + v.modelo"></option>
+      </template>
+    </select>
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="checkbox" x-model="soloAlertas" class="checkbox checkbox-warning checkbox-sm" @change="cargarDatos()" />
+      <span class="text-sm">Solo próximos vencidos</span>
+    </label>
+  </div>
+
+  <template x-if="cargando">
+    <div class="space-y-3"><div class="skeleton h-12 w-full"></div><div class="skeleton h-12 w-full"></div><div class="skeleton h-12 w-full"></div></div>
+  </template>
+
+  <template x-if="!cargando && datosFiltrados.length">
+    <div class="overflow-x-auto">
+      <table class="table table-zebra">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Vehículo</th>
+            <th>Tipo</th>
+            <th>Taller</th>
+            <th>Costo</th>
+            <th>Km actual</th>
+            <th>Próximo Km</th>
+            <th>Alerta</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr x-for="item in datosFiltrados" :key="item.id">
+            <td x-text="formatDate(item.createdAt)"></td>
+            <td x-text="vehiculoLabel(item.vehiculoId)"></td>
+            <td>
+              <span class="badge badge-outline" :class="badgeTipo(item.tipo)" x-text="item.tipo"></span>
+            </td>
+            <td x-text="item.taller || '-'"></td>
+            <td x-text="formatCurrency(item.costo)"></td>
+            <td x-text="item.kilometraje ? item.kilometraje.toLocaleString() : '-'"></td>
+            <td x-text="item.proximoKm ? item.proximoKm.toLocaleString() : '-'"></td>
+            <td>
+              <template x-if="item.proximoKm">
+                <span class="badge badge-warning badge-sm gap-1">
+                  <i class="bi bi-exclamation-triangle-fill"></i>
+                  <span x-text="'Próximo en ' + item.proximoKm + ' km'"></span>
+                </span>
+              </template>
+              <template x-if="!item.proximoKm">
+                <span class="text-base-content/30 text-xs">—</span>
+              </template>
+            </td>
+            <td class="flex gap-1">
+              <button class="btn btn-sm btn-ghost" @click="abrirForm(item)"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-ghost text-error" @click="eliminar(item)"><i class="bi bi-trash"></i></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </template>
+
+  <template x-if="!cargando && !datosFiltrados.length">
+    <div class="flex flex-col items-center justify-center py-16 text-base-content/50">
+      <i class="bi bi-tools text-6xl mb-4"></i>
+      <p class="text-lg mb-4">No hay registros de mantenimiento</p>
+      <button class="btn btn-primary" @click="abrirForm()"><i class="bi bi-plus-lg"></i> Registrar primer servicio</button>
+    </div>
+  </template>
+</div>

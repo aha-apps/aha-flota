@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AHA Flota</title>
+  <meta name="description" content="Control de vehículos y flotilla offline-first">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data/defaults/icon-192x192.png" type="image/png">
+
+  <!-- CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+
+  <!-- JS Librerías base -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dexie@4.0.10/dist/dexie.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <style>
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen bg-base-200" x-data="flotaShell()" x-init="init()" :data-theme="$store.theme?.modo || 'light'">
+
+  <a href="#app-content" class="skip-link sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-content focus:rounded-lg">
+    Saltar al contenido
+  </a>
+
+  <div id="a11y-live-region" aria-live="polite" class="sr-only"></div>
+
+  <!-- Offline Banner -->
+  <div x-data x-show="$store.network?.online === false" x-cloak
+       class="fixed top-0 left-0 right-0 z-50 bg-error text-error-content text-center text-sm py-1.5 font-medium">
+    <i class="bi bi-wifi-off"></i> Sin conexión — los datos se guardan localmente
+  </div>
+
+  <div class="flex">
+    <!-- Sidebar -->
+    <aside x-data="flotaSidebar()" x-init="init()"
+           class="fixed top-0 left-0 z-40 h-screen transition-all duration-300 bg-base-200 border-r border-base-300 flex flex-col"
+           :class="$store.sidebar?.colapsado ? 'w-16' : 'w-64'">
+
+      <div class="flex items-center h-16 px-4 border-b border-base-300 shrink-0">
+        <div class="flex items-center gap-3 overflow-hidden" :class="$store.sidebar?.colapsado ? 'justify-center w-full' : ''">
+          <div class="avatar placeholder">
+            <div class="w-8 rounded-lg bg-primary text-primary-content text-xs font-bold">
+              <span>AF</span>
+            </div>
+          </div>
+          <div x-show="!$store.sidebar?.colapsado" class="truncate">
+            <div class="font-semibold text-sm truncate">AHA Flota</div>
+            <div class="text-[10px] text-base-content/40 leading-tight truncate">Lite</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto overflow-x-hidden py-2">
+        <template x-for="mod in modulos" :key="mod.id">
+          <a href="#" @click.prevent="navegar(mod.id)"
+             :data-module="mod.id"
+             class="flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors cursor-pointer"
+             :class="activo === mod.id ? 'bg-primary text-primary-content' : 'hover:bg-base-300 text-base-content/70'">
+            <i :class="mod.icono" class="text-lg shrink-0 w-6 text-center"></i>
+            <span x-show="!$store.sidebar?.colapsado" class="text-sm truncate" x-text="mod.titulo"></span>
+          </a>
+        </template>
+      </div>
+
+      <div class="border-t border-base-300 p-3 shrink-0">
+        <div class="flex items-center justify-between">
+          <button @click="toggleColapso" class="btn btn-ghost btn-sm btn-square" title="Colapsar menú">
+            <i class="bi bi-layout-sidebar" :class="{ 'rotate-180': $store.sidebar?.colapsado }"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col min-h-screen transition-all duration-300"
+         :style="'margin-left: ' + ($store.sidebar?.colapsado ? '4rem' : '16rem')">
+
+      <!-- Navbar -->
+      <header x-data="flotaNavbar()" x-init="init()"
+              class="sticky top-0 z-30 flex items-center h-16 gap-3 px-4 bg-base-100/80 backdrop-blur border-b border-base-300 shadow-sm">
+        <button class="btn btn-ghost btn-sm btn-square lg:hidden" @click="toggleMobile">
+          <i class="bi bi-list text-xl"></i>
+        </button>
+
+        <div class="flex items-center gap-2 text-sm breadcrumbs">
+          <ul>
+            <li><span class="text-base-content/50"><i class="bi bi-house"></i> AHA Flota</span></li>
+            <template x-if="moduloActual">
+              <li><span class="font-medium text-base-content" x-text="moduloActual"></span></li>
+            </template>
+          </ul>
+        </div>
+
+        <div class="flex-1"></div>
+
+        <div class="flex items-center gap-1">
+          <label class="input input-bordered input-sm hidden sm:flex items-center gap-2 w-48 lg:w-64">
+            <i class="bi bi-search text-base-content/40 text-xs"></i>
+            <input type="search" placeholder="Buscar (Ctrl+K)" class="grow text-xs"
+                   @focus="abrirPaleta" @keydown.prevent.slash="abrirPaleta">
+          </label>
+
+          <button class="btn btn-ghost btn-sm btn-square" @click="toggleTheme" title="Tema">
+            <i class="bi bi-moon-stars" x-show="$store.theme?.modo === 'light'"></i>
+            <i class="bi bi-sun" x-show="$store.theme?.modo === 'dark'"></i>
+          </button>
+
+          <div class="dropdown dropdown-end" x-data="{ abierto: false }">
+            <button class="btn btn-ghost btn-sm btn-circle" @click="abierto = !abierto" tabindex="0">
+              <div class="avatar placeholder">
+                <div class="w-7 rounded-full bg-primary text-primary-content text-xs font-bold">
+                  <span>AF</span>
+                </div>
+              </div>
+            </button>
+            <ul class="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-300 z-50"
+                @click.outside="abierto = false">
+              <li class="menu-title"><span>AHA Flota v1.0.0</span></li>
+              <li><a @click="abierto=false;exportarBackup()"><i class="bi bi-download"></i> Exportar backup</a></li>
+              <li><a @click="abierto=false;importarBackup()"><i class="bi bi-upload"></i> Importar backup</a></li>
+              <li><div class="divider my-1"></div></li>
+              <li><a @click="abierto=false;acercaDe()"><i class="bi bi-info-circle"></i> Acerca de</a></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+
+      <main id="app-content" class="flex-1 p-4 md:p-6">
+        <div class="flex items-center justify-center h-64 text-base-content/40" x-show="!$store.app?.moduloActual" x-cloak>
+          <div class="text-center">
+            <i class="bi bi-truck text-5xl mb-4 block animate-pulse"></i>
+            <p class="text-sm">Cargando AHA Flota...</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast toast-end toast-bottom z-[80]"></div>
+  <div id="sp-loading-overlay" class="fixed inset-0 z-[70] flex items-center justify-center bg-base-300/50 backdrop-blur-sm hidden">
+    <div class="text-center"><span class="loading loading-spinner loading-lg text-primary"></span><p class="mt-2 text-sm text-base-content/60"></p></div>
+  </div>
+  <div id="search-palette-container"></div>
+
+  <!-- Alpine Stores -->
+  <script>
+    document.addEventListener('alpine:init', function() {
+      Alpine.store('app', { moduloActual: '', cargando: false, error: null });
+      Alpine.store('theme', {
+        modo: localStorage.getItem('theme') || 'light',
+        init() { this.$watch('modo', function(val) { localStorage.setItem('theme', val); document.documentElement.setAttribute('data-theme', val); }); }
+      });
+      Alpine.store('sidebar', {
+        colapsado: localStorage.getItem('sidebar_colapsado') === 'true',
+        mobileOpen: false,
+        toggleColapso() { this.colapsado = !this.colapsado; localStorage.setItem('sidebar_colapsado', this.colapsado); },
+        toggleMobile() { this.mobileOpen = !this.mobileOpen; }
+      });
+      Alpine.store('network', { online: navigator.onLine, showBanner: false });
+    });
+  </script>
+
+  <script>
+    function flotaShell() {
+      return {
+        init() {
+          var self = this;
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() { setTimeout(function() { self.iniciarApp(); }, 200); });
+          } else {
+            setTimeout(function() { self.iniciarApp(); }, 200);
+          }
+        },
+        async iniciarApp() {
+          try {
+            if (window.appRouter) await window.appRouter.init();
+          } catch (err) {
+            console.error('Shell init error:', err);
+          }
+        }
+      };
+    }
+
+    function flotaSidebar() {
+      return {
+        activo: '',
+        modulos: [],
+        init() {
+          this.activo = '';
+          this.modulos = [];
+          if (window.APP_CONFIG && window.APP_CONFIG.modulos) {
+            var modKeys = Object.keys(window.APP_CONFIG.modulos);
+            for (var i = 0; i < modKeys.length; i++) {
+              var m = window.APP_CONFIG.modulos[modKeys[i]];
+              if (m.activo !== false) {
+                this.modulos.push({ id: modKeys[i], titulo: m.titulo, icono: m.icono });
+              }
+            }
+          }
+          var self = this;
+          window.addEventListener('hashchange', function() { self.actualizarActivo(); });
+        },
+        navegar(id) {
+          if (window.appRouter) window.appRouter.navigate(id);
+          this.activo = id;
+        },
+        toggleColapso() {
+          if (Alpine.store('sidebar')) Alpine.store('sidebar').toggleColapso();
+        },
+        actualizarActivo() {
+          if (window.appRouter) this.activo = window.appRouter.getCurrent() || '';
+        }
+      };
+    }
+
+    function flotaNavbar() {
+      return {
+        moduloActual: '',
+        init() {
+          var self = this;
+          window.addEventListener('hashchange', function() {
+            if (window.appRouter) self.moduloActual = window.appRouter.getCurrent() || '';
+          });
+        },
+        toggleMobile() {
+          if (Alpine.store('sidebar')) Alpine.store('sidebar').toggleMobile();
+        },
+        toggleTheme() {
+          if (window.themeStore) window.themeStore.toggle();
+        },
+        abrirPaleta() {
+          if (window.searchPalette) window.searchPalette.openPalette();
+        },
+        exportarBackup() {
+          if (window.SyncEngine) window.SyncEngine.exportarBackup();
+          else UI.toast('SyncEngine no disponible', 'error');
+        },
+        importarBackup() {
+          var input = document.createElement('input');
+          input.type = 'file';
+          input.accept = '.ahabackup,.ateje-backup';
+          input.onchange = function(e) {
+            var file = e.target.files[0];
+            if (file && window.SyncEngine) window.SyncEngine.importarBackup(file);
+          };
+          input.click();
+        },
+        acercaDe() {
+          UI.toast('AHA Flota v1.0.0 — Lite', 'info');
+        }
+      };
+    }
+  </script>
+
+  <!-- Core -->
+  <script src="core/env.js"></script>
+  <script src="project.config.js"></script>
+  <script src="core/db.js"></script>
+  <script src="core/crypto.js"></script>
+  <script src="core/ui.js"></script>
+  <script src="core/theme.js"></script>
+  <script src="core/network.js"></script>
+  <script src="core/app.js"></script>
+  <script src="core/search-palette.js"></script>
+  <script src="core/file-store.js"></script>
+  <script src="core/sync.js"></script>
+  <script src="core/license.js"></script>
+
+  <!-- Modules -->
+  <script src="modules/vehiculos/module.js"></script>
+  <script src="modules/combustible/module.js"></script>
+  <script src="modules/mantenimiento/module.js"></script>
+  <script src="modules/incidentes/module.js"></script>
+  <script src="modules/reportes/module.js"></script>
+
+  <!-- Seed -->
+  <script src="core/seed.js"></script>
+  <!-- Main -->
+  <script src="core/main.js"></script>
+
+  <!-- PWA Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>

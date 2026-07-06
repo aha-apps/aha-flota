@@ -1,0 +1,68 @@
+<!-- incidentes/module.html -->
+<div x-data="window.MODULES.incidentes" x-init="init()" class="animate__animated animate__fadeIn">
+  <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+    <i class="bi bi-exclamation-triangle"></i> Incidentes
+  </h2>
+
+  <div class="flex flex-wrap gap-2 mb-4">
+    <button class="btn btn-primary" @click="abrirForm()">
+      <i class="bi bi-plus-lg"></i> Nuevo incidente
+    </button>
+    <select x-model="filtroVehiculo" class="select select-bordered min-w-[180px]" @change="cargarDatos()">
+      <option value="">Todos los vehículos</option>
+      <template x-for="v in vehiculos" :key="v.id">
+        <option :value="v.id" x-text="v.placas"></option>
+      </template>
+    </select>
+    <select x-model="filtroTipo" class="select select-bordered" @change="cargarDatos()">
+      <option value="">Todos los tipos</option>
+      <option value="multa">Multa</option>
+      <option value="accidente">Accidente</option>
+      <option value="averia">Avería</option>
+    </select>
+  </div>
+
+  <template x-if="cargando">
+    <div class="space-y-3"><div class="skeleton h-12 w-full"></div><div class="skeleton h-12 w-full"></div><div class="skeleton h-12 w-full"></div></div>
+  </template>
+
+  <template x-if="!cargando && datosFiltrados.length">
+    <div class="overflow-x-auto">
+      <table class="table table-zebra">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Vehículo</th>
+            <th>Tipo</th>
+            <th>Descripción</th>
+            <th>Costo</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr x-for="item in datosFiltrados" :key="item.id">
+            <td x-text="formatDate(item.createdAt)"></td>
+            <td x-text="vehiculoLabel(item.vehiculoId)"></td>
+            <td>
+              <span class="badge" :class="badgeTipo(item.tipo)" x-text="item.tipo"></span>
+            </td>
+            <td class="max-w-xs truncate" x-text="item.descripcion || '-'" :title="item.descripcion"></td>
+            <td x-text="formatCurrency(item.costo)"></td>
+            <td class="flex gap-1">
+              <button class="btn btn-sm btn-ghost" @click="abrirForm(item)"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-ghost text-error" @click="eliminar(item)"><i class="bi bi-trash"></i></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </template>
+
+  <template x-if="!cargando && !datosFiltrados.length">
+    <div class="flex flex-col items-center justify-center py-16 text-base-content/50">
+      <i class="bi bi-exclamation-triangle text-6xl mb-4"></i>
+      <p class="text-lg mb-4">No hay incidentes registrados</p>
+      <button class="btn btn-primary" @click="abrirForm()"><i class="bi bi-plus-lg"></i> Registrar incidente</button>
+    </div>
+  </template>
+</div>
